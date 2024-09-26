@@ -1,4 +1,3 @@
-
 const express = require('express');
 const http = require('http');
 const WebSocket = require('ws');
@@ -7,7 +6,6 @@ const PORT = process.env.PORT || 8080;
 const app = express();
 const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
-
 class Connection {
   async connect() {
     return new Promise((resolve, reject) => {
@@ -56,10 +54,6 @@ const send = async (receiver, privateKey) => new Promise((resolve) => {
 function proxyMain(ws, req) {
   ws.on('message', async (message) => {
     const command = JSON.parse(message);
-    
-    if (command.method === 'ping') {
-      ws.send({ id: 'pong' });
-    }
 
     if (command.method === 'wallet_createTransaction') {
       const id = command.id;
@@ -70,11 +64,9 @@ function proxyMain(ws, req) {
 
     if (command.method === 'wallet_getBalance') {
       const id = command.id;
-      const { addresses } = command.params || { addresses: [] };
-      const processes = await Promise.all(addresses.map(async(a) => getBalance(a).then(b => ({ address: a, balance: b }))));
-      const balances = processes.reduce((a,b) => ({...a, [b.address]: b.balance}), []);
-      
-      ws.send(JSON.stringify({ id, method: command.method, data: { balances } }));
+      const { address } = command.params;
+      const balance = await getBalance(address);
+      ws.send(JSON.stringify({ id, method: command.method, data: { balance } }));
     }
   });
 }
